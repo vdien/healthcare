@@ -9,12 +9,13 @@ export async function POST(req) {
     const headerPayload = headers();
     const svixHeaders = {
         "svix-id": headerPayload.get("svix-id"),
+        "svix-timestamp": headerPayload.get("svix-timestamp"),
         "svix-signature": headerPayload.get("svix-signature"),
     };
     //get the payload and verify it
     const payload = await req.json();
     const body = JSON.stringify(payload);
-    const {data,type} = wh.verify(body, svixHeaders);
+    const { data, type } = wh.verify(body, svixHeaders);
     //prepare the user data to be saved in the database
     const userData = {
         _id: data.id,
@@ -25,23 +26,24 @@ export async function POST(req) {
     //connect to the database
     await connectDB();
 
-    switch (type){
+    switch (type) {
         case "user.created":
             //create a new user
             await User.create(userData);
             break;
         case "user.updated":
             //update the user
-            await User.findByIdAndUpdate(data.id, userData, {new: true});
+            await User.findByIdAndUpdate(data.id, userData, { new: true });
             break;
         case "user.deleted":
             //delete the user
             await User.findByIdAndDelete(data.id);
             break;
         default:
-            console.log("Unhandled event type:", type); 
+            console.log("Unhandled event type:", type);
             break;
     }
     return NextRequest.json({
-        message: "Event received"});
+        message: "Event received"
+    });
 }
