@@ -25,7 +25,7 @@ export async function POST(req) {
     };
     //connect to the database
     await connectDB();
-
+    
     switch (type) {
         case "user.created":
             //create a new user
