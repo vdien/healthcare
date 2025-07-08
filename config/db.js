@@ -11,10 +11,7 @@ export default async function connectDB() {
     }
 
     if (!cached.promise) {
-        cached.promise = mongoose.connect(uri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        }).then((mongoose) => mongoose);
+        cached.promise = mongoose.connect(uri).then((mongoose) => mongoose);
     }
 
     try {
