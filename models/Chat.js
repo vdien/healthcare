@@ -1,20 +1,22 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const ChatSchema = new mongoose.Schema(
-    {
-        name: { type: String, required: true },
-        messages: [
-            {
-                role: { type: String, required: true }, // 'user' or 'assistant'
-                content: { type: String, required: true },
-                timestamp: { type: Number, required: true }
-            },
-        ],
-        userId: { type: String, required: true }, // Reference to the user who created the chat
-    },
-    { timestamps: true }
-);
+const messageSchema = new mongoose.Schema({
+    role: { type: String, enum: ['user', 'assistant', 'system'], required: true },
+    content: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+});
 
-const Chat = mongoose.models.Chat || mongoose.model("Chat", ChatSchema);
+const chatSchema = new mongoose.Schema({
+    userId: { type: String, required: true },
+    title: { type: String, default: 'New Chat' },
+    messages: [messageSchema],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
 
-export default Chat;
+chatSchema.pre('save', function (next) {
+    this.updatedAt = Date.now();
+    next();
+});
+
+export default mongoose.models.Chat || mongoose.model('Chat', chatSchema);

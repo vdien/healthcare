@@ -5,7 +5,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
-const PrompBox = ({ setIsLoading, isLoading }) => {
+const PromptBox = ({ setIsLoading, isLoading }) => {
     const [prompt, setPrompt] = useState('');
     const { user, chats, setChats, selectedChat, setSelectedChat } = useAppContext();
 
@@ -18,7 +18,6 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
 
     const sendPrompt = async (e) => {
         e.preventDefault();
-
         const promptCopy = prompt.trim();
         if (!promptCopy) return;
 
@@ -35,8 +34,16 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
                 timestamp: Date.now()
             };
 
-            // Optimistically update UI
+            // Cập nhật message của user ngay
             updateChatMessages(userMessage);
+
+            // Đẩy placeholder "đang trả lời..."
+            const placeholderMessage = {
+                role: 'assistant',
+                content: '...',
+                timestamp: Date.now()
+            };
+            updateChatMessages(placeholderMessage, true);
 
             const { data } = await axios.post('/api/chat/ai', {
                 chatId: selectedChat._id,
@@ -45,15 +52,14 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
 
             if (data.success) {
                 const aiMessage = {
-                    ...data.data,
+                    ...data.data.choices[0].message,
                     timestamp: Date.now(),
                     role: 'assistant'
                 };
-
-                updateChatMessages(aiMessage);
+                replaceLastMessage(aiMessage);
             } else {
+                rollbackChatMessages();
                 toast.error(data.error || "Failed to get AI response");
-                rollbackChatMessages(); // remove the user's message if error
                 setPrompt(promptCopy);
             }
         } catch (error) {
@@ -66,7 +72,7 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
         }
     };
 
-    const updateChatMessages = (message) => {
+    const updateChatMessages = (message, isPlaceholder = false) => {
         setChats(prevChats =>
             prevChats.map(chat =>
                 chat._id === selectedChat._id
@@ -81,18 +87,47 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
         }));
     };
 
+    const replaceLastMessage = (newMessage) => {
+        setChats(prevChats =>
+            prevChats.map(chat =>
+                chat._id === selectedChat._id
+                    ? {
+                        ...chat,
+                        messages: [...chat.messages.slice(0, -1), newMessage]
+                    }
+                    : chat
+            )
+        );
+        setSelectedChat(prev => ({
+            ...prev,
+            messages: [...prev.messages.slice(0, -1), newMessage]
+        }));
+    };
+
     const rollbackChatMessages = () => {
-        // Optionally re-fetch or remove last user message if needed
-        // For now, we just keep UI unchanged
+        setChats(prevChats =>
+            prevChats.map(chat =>
+                chat._id === selectedChat._id
+                    ? {
+                        ...chat,
+                        messages: chat.messages.slice(0, -1)
+                    }
+                    : chat
+            )
+        );
+        setSelectedChat(prev => ({
+            ...prev,
+            messages: selectedChat.messages.slice(0, -1)
+        }));
     };
 
     return (
-        <form onSubmit={sendPrompt} className={`w-full ${selectedChat?.messages.length > 0 ? "max-w-3xl":"max-w-3xl"} max-w-2xl bg-[#404045] p-4 rounded-3xl mt-4 transition-all`}>
+        <form onSubmit={sendPrompt} className={`w-full max-w-3xl bg-[#404045] p-4 rounded-3xl mt-4 transition-all`}>
             <textarea
                 onKeyDown={handleKeyDown}
                 className="outline-none w-full resize-none overflow-hidden break-words bg-transparent text-white"
                 rows={2}
-                placeholder="Message DeepSeek"
+                placeholder="Message HealthCare"
                 required
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -100,18 +135,18 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
 
             <div className="flex items-center justify-between text-sm mt-2">
                 <div className="flex items-center gap-2">
-                    <p className="flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-1 rounded-full cursor-pointer hover:bg-gray-500/20 transition">
+                    {/* <p className="flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-1 rounded-full cursor-pointer hover:bg-gray-500/20 transition">
                         <Image className="h-5" src={assets.deepthink_icon} alt="" />
                         DeepThink (R1)
                     </p>
                     <p className="flex items-center gap-2 text-xs border border-gray-300/40 px-2 py-1 rounded-full cursor-pointer hover:bg-gray-500/20 transition">
                         <Image className="h-5" src={assets.search_icon} alt="" />
                         Search
-                    </p>
+                    </p> */}
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Image className="w-4 cursor-pointer" src={assets.pin_icon} alt="pin icon" />
+                    {/* <Image className="w-4 cursor-pointer" src={assets.pin_icon} alt="pin icon" /> */}
                     <button
                         type="submit"
                         className={`${prompt ? "bg-primary" : "bg-[#71717a]"} rounded-full p-2 cursor-pointer`}
@@ -129,4 +164,4 @@ const PrompBox = ({ setIsLoading, isLoading }) => {
     );
 };
 
-export default PrompBox;
+export default PromptBox;

@@ -1,21 +1,23 @@
 import mongoose from "mongoose";
 
-let cached = global.mongoose || { conn: null, promise: null };
+let isConnected = false;
 
-export default async function connectDB() {
-    if (cached.conn) return cached.conn;
-    
-    if (!cached.promise) {
-        cached.promise = mongoose.connect(process.env.MONGODB_URI)
-            .then((mongoose) => mongoose);
-    }
+const connectDB = async () => {
+  if (isConnected) return;
 
-    try {
-        cached.conn = await cached.promise;
-    } catch (error) {
-        console.error("Error connecting to MongoDB:", error);
-        throw error; // It's good practice to re-throw the error
-    }
-    
-    return cached.conn;
-}
+  try {
+    const conn = await mongoose.connect("mongodb://localhost:27017/healthbot", {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      dbName: "healthbot", // tên DB của bạn
+    });
+
+    isConnected = true;
+    console.log("✅ MongoDB connected at", conn.connection.host);
+  } catch (error) {
+    console.error("❌ MongoDB connection error:", error);
+    throw error;
+  }
+};
+
+export default connectDB;
